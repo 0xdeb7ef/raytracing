@@ -1,6 +1,10 @@
 const testing = @import("std").testing;
 const sqrt1_2 = @import("std").math.sqrt1_2;
 
+const utils = @import("utils/utils.zig");
+const random = utils.random;
+const randomI = utils.randomI;
+
 pub fn Vector(comptime size: usize, comptime T: type) type {
     return struct {
         const Vec = @Vector(size, T);
@@ -42,6 +46,45 @@ pub fn Vector(comptime size: usize, comptime T: type) type {
                 u[2] * v[0] - u[0] * v[2],
                 u[0] * v[1] - u[1] * v[0],
             };
+        }
+
+        pub fn randomVec() Vec {
+            return .{
+                random(T),
+                random(T),
+                random(T),
+            };
+        }
+        pub fn randomIVec(min: T, max: T) Vec {
+            return .{
+                randomI(T, min, max),
+                randomI(T, min, max),
+                randomI(T, min, max),
+            };
+        }
+
+        pub inline fn randomInSphere() Vec {
+            while (true) {
+                const p = randomIVec(-1, 1);
+                if (mag_squared(p) < 1)
+                    return p;
+            }
+        }
+        pub inline fn randomUnitVec() Vec {
+            return unitVector(randomInSphere());
+        }
+        pub inline fn randomOnHemisphere(normal: Vec) Vec {
+            _ = normal; // autofix
+            // NOTE - somehow the normals are always correct and
+            // having this code only makes it worse:
+            // const on_unit_sphere = randomUnitVec();
+            // if (dot(on_unit_sphere, normal) > 0.0) {
+            //     return on_unit_sphere;
+            // } else {
+            //     return -on_unit_sphere;
+            // }
+
+            return randomUnitVec();
         }
     };
 }

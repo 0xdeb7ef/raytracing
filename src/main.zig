@@ -38,6 +38,7 @@ pub fn main() !void {
         .image_width = 400,
         .aspect_ratio = 16.0 / 9.0,
         .samples_per_pixel = 100,
+        .max_depth = 50,
     };
     try cam.render(world, stdout);
 

@@ -23,6 +23,8 @@ aspect_ratio: f32 = 1.0,
 image_width: u32 = 100,
 /// Count of random samples for each pixel
 samples_per_pixel: u32 = 10,
+/// Maximum number of ray bounces into scene
+max_depth: u32 = 10,
 
 // private
 /// Rendered image height
@@ -52,7 +54,7 @@ pub fn render(self: *Self, world: HittableList, stdout: anytype) !void {
             var sample: usize = 0;
             while (sample < self.samples_per_pixel) : (sample += 1) {
                 const r = self.get_ray(i, j);
-                pixel_color += ray_color(r, world);
+                pixel_color += ray_color(r, self.max_depth, world);
             }
             try writeColor(pixel_color, self.samples_per_pixel, stdout);
         }
@@ -97,10 +99,15 @@ fn pixel_sample_square(self: Self) Vec3 {
     return (Vec(px) * self._pixel_delta_u) + (Vec(py) * self._pixel_delta_v);
 }
 
-fn ray_color(ray: Ray, world: HittableList) Vec3 {
+fn ray_color(ray: Ray, depth: u32, world: HittableList) Vec3 {
     var rec: HitRecord = undefined;
-    if (world.hit(ray, interval{ .min = 0, .max = infinity }, &rec)) {
-        return Vec(0.5) * (rec.normal + Vec(1));
+
+    if (depth <= 0)
+        return Vec(0);
+
+    if (world.hit(ray, interval{ .min = 0.001, .max = infinity }, &rec)) {
+        const direction = Vec3t.randomOnHemisphere(rec.normal);
+        return Vec(0.5) * ray_color(Ray{ .origin = rec.p, .dir = direction }, depth - 1, world);
     }
 
     const unit_direction = Vec(ray.dir);
