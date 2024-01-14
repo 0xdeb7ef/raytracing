@@ -2,12 +2,29 @@ const std = @import("std");
 const stdout_file = std.io.getStdOut().writer();
 const log = std.log;
 
-const Vec3 = @import("Vector.zig").Vector(3, f32);
-const Vec = Vec3.init;
-const colorUtils = @import("utils/color.zig");
-const Ray = @import("Ray.zig").Ray;
+const Vec3t = @import("Vector.zig").Vector(3, f32);
+const Vec3 = @Vector(3, f32);
+const Vec = Vec3t.init;
 
-fn ray_color(ray: Ray(3, f32)) @Vector(3, f32) {
+const colorUtils = @import("utils/color.zig");
+
+const Ray = @import("Ray.zig").Ray(3, f32);
+
+fn hit_sphere(center: Vec3, radius: f32, ray: Ray) bool {
+    const oc = ray.origin - center;
+    const a = Vec3t.dot(ray.dir, ray.dir);
+    const b = 2.0 * Vec3t.dot(oc, ray.dir);
+    const c = Vec3t.dot(oc, oc) - radius * radius;
+
+    const discr = b * b - 4 * a * c;
+
+    return (discr >= 0);
+}
+
+fn ray_color(ray: Ray) Vec3 {
+    if (hit_sphere(Vec(.{ 0, 0, -1 }), 0.5, ray))
+        return Vec(.{ 1, 0, 0 });
+
     const unit_direction = Vec(ray.dir);
     const a = 0.5 * (unit_direction[1] + 1.0);
     return (Vec(1 - a) * Vec(1)) + (Vec(a) * Vec(.{ 0.5, 0.7, 1.0 }));
@@ -53,8 +70,7 @@ pub fn main() !void {
         while (i < image_width) : (i += 1) {
             const pixel_center = pixel00_loc + (Vec(@as(f32, @floatFromInt(i))) * pixel_delta_u) + (Vec(@as(f32, @floatFromInt(j))) * pixel_delta_v);
             const ray_direction = pixel_center - camera_center;
-            const ray = Ray(3, f32);
-            const r = ray.init(camera_center, ray_direction);
+            const r = Ray.init(camera_center, ray_direction);
 
             const color = ray_color(r);
             try colorUtils.writeColor(color, stdout);
