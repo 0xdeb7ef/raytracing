@@ -6,10 +6,9 @@ const Vec3t = @import("Vector.zig").Vector(3, f32);
 const Vec3 = @Vector(3, f32);
 const Vec = Vec3t.init;
 
-const Ray = @import("Ray.zig").Ray(3, f32);
+const Ray = @import("Ray.zig");
 
 const interval = @import("utils/interval.zig");
-
 const colorUtils = @import("utils/color.zig");
 
 const Objects = @import("Objects.zig");
@@ -92,7 +91,7 @@ pub fn main() !void {
         while (i < image_width) : (i += 1) {
             const pixel_center = pixel00_loc + (Vec(@as(f32, @floatFromInt(i))) * pixel_delta_u) + (Vec(@as(f32, @floatFromInt(j))) * pixel_delta_v);
             const ray_direction = pixel_center - camera_center;
-            const r = Ray.init(camera_center, ray_direction);
+            const r = Ray{ .origin = camera_center, .dir = ray_direction };
 
             const color = ray_color(r, world);
             try colorUtils.writeColor(color, stdout);

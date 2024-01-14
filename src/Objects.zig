@@ -1,4 +1,4 @@
-const Ray = @import("Ray.zig").Ray(3, f32);
+const Ray = @import("Ray.zig");
 
 const Vec3t = @import("Vector.zig").Vector(3, f32);
 const Vec3 = @Vector(3, f32);

@@ -1,21 +1,10 @@
-pub fn Ray(comptime dim: usize, comptime T: type) type {
-    const Vec = @Vector(dim, T);
+const Vec3 = @Vector(3, f32);
 
-    return struct {
-        const Self = @This();
+origin: Vec3,
+dir: Vec3,
 
-        origin: Vec,
-        dir: Vec,
+const Self = @This();
 
-        pub fn init(origin: Vec, dir: Vec) Self {
-            return Self{
-                .origin = origin,
-                .dir = dir,
-            };
-        }
-
-        pub fn at(self: Self, t: T) Vec {
-            return self.origin + (@as(Vec, @splat(t)) * self.dir);
-        }
-    };
+pub fn at(self: Self, t: f32) Vec3 {
+    return self.origin + (@as(Vec3, @splat(t)) * self.dir);
 }
