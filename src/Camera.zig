@@ -13,6 +13,7 @@ const utils = @import("utils/utils.zig");
 const interval = utils.interval;
 const infinity = utils.infinity;
 const writeColor = utils.writeColor;
+const random = utils.random;
 
 const log = @import("std").log;
 
@@ -20,6 +21,8 @@ const log = @import("std").log;
 aspect_ratio: f32 = 1.0,
 /// Rendered image width in pixels
 image_width: u32 = 100,
+/// Count of random samples for each pixel
+samples_per_pixel: u32 = 10,
 
 // private
 /// Rendered image height
@@ -42,15 +45,16 @@ pub fn render(self: *Self, world: HittableList, stdout: anytype) !void {
 
     var j: usize = 0;
     while (j < self._image_height) : (j += 1) {
-        log.info("Scanlines remaining: [{d:3}/{d:3}]", .{ self._image_height - j, self._image_height });
+        log.info("Scanlines remaining: [{d:4}/{d:4}]", .{ self._image_height - j, self._image_height });
         var i: usize = 0;
         while (i < self.image_width) : (i += 1) {
-            const pixel_center = self._pixel00_loc + (Vec(@as(f32, @floatFromInt(i))) * self._pixel_delta_u) + (Vec(@as(f32, @floatFromInt(j))) * self._pixel_delta_v);
-            const ray_direction = pixel_center - self._center;
-            const r = Ray{ .origin = self._center, .dir = ray_direction };
-
-            const color = ray_color(r, world);
-            try writeColor(color, stdout);
+            var pixel_color = Vec(0);
+            var sample: usize = 0;
+            while (sample < self.samples_per_pixel) : (sample += 1) {
+                const r = self.get_ray(i, j);
+                pixel_color += ray_color(r, world);
+            }
+            try writeColor(pixel_color, self.samples_per_pixel, stdout);
         }
     }
     log.info("Done!", .{});
@@ -78,6 +82,19 @@ fn init(self: *Self) void {
     // Calculate the location of the upper left pixel
     const viewport_upper_left = self._center - Vec(.{ 0, 0, focal_length }) - (viewport_u / Vec(2)) - (viewport_v / Vec(2));
     self._pixel00_loc = viewport_upper_left + (Vec(0.5) * (self._pixel_delta_u + self._pixel_delta_v));
+}
+
+fn get_ray(self: Self, i: usize, j: usize) Ray {
+    const pixel_center = self._pixel00_loc + (Vec(@as(f32, @floatFromInt(i))) * self._pixel_delta_u) + (Vec(@as(f32, @floatFromInt(j))) * self._pixel_delta_v);
+    const pixel_sample = pixel_center + self.pixel_sample_square();
+
+    return Ray{ .origin = self._center, .dir = pixel_sample - self._center };
+}
+
+fn pixel_sample_square(self: Self) Vec3 {
+    const px = -0.5 + random(f32);
+    const py = -0.5 + random(f32);
+    return (Vec(px) * self._pixel_delta_u) + (Vec(py) * self._pixel_delta_v);
 }
 
 fn ray_color(ray: Ray, world: HittableList) Vec3 {

@@ -34,7 +34,11 @@ pub fn main() !void {
         .radius = 0.5,
     } });
 
-    var cam = Camera{ .image_width = 400, .aspect_ratio = 16.0 / 9.0 };
+    var cam = Camera{
+        .image_width = 400,
+        .aspect_ratio = 16.0 / 9.0,
+        .samples_per_pixel = 100,
+    };
     try cam.render(world, stdout);
 
     try bw.flush();
