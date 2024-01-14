@@ -53,8 +53,8 @@ pub fn render(self: *Self, world: HittableList, stdout: anytype) !void {
             var pixel_color = Vec(0);
             var sample: usize = 0;
             while (sample < self.samples_per_pixel) : (sample += 1) {
-                const r = self.get_ray(i, j);
-                pixel_color += ray_color(r, self.max_depth, world);
+                const r = self.getRay(i, j);
+                pixel_color += rayColor(r, self.max_depth, world);
             }
             try writeColor(pixel_color, self.samples_per_pixel, stdout);
         }
@@ -86,20 +86,20 @@ fn init(self: *Self) void {
     self._pixel00_loc = viewport_upper_left + (Vec(0.5) * (self._pixel_delta_u + self._pixel_delta_v));
 }
 
-fn get_ray(self: Self, i: usize, j: usize) Ray {
+fn getRay(self: Self, i: usize, j: usize) Ray {
     const pixel_center = self._pixel00_loc + (Vec(@as(f32, @floatFromInt(i))) * self._pixel_delta_u) + (Vec(@as(f32, @floatFromInt(j))) * self._pixel_delta_v);
-    const pixel_sample = pixel_center + self.pixel_sample_square();
+    const pixel_sample = pixel_center + self.pixelSampleSquare();
 
     return Ray{ .origin = self._center, .dir = pixel_sample - self._center };
 }
 
-fn pixel_sample_square(self: Self) Vec3 {
+fn pixelSampleSquare(self: Self) Vec3 {
     const px = -0.5 + random(f32);
     const py = -0.5 + random(f32);
     return (Vec(px) * self._pixel_delta_u) + (Vec(py) * self._pixel_delta_v);
 }
 
-fn ray_color(ray: Ray, depth: u32, world: HittableList) Vec3 {
+fn rayColor(ray: Ray, depth: u32, world: HittableList) Vec3 {
     var rec: HitRecord = undefined;
 
     if (depth <= 0)
@@ -107,7 +107,7 @@ fn ray_color(ray: Ray, depth: u32, world: HittableList) Vec3 {
 
     if (world.hit(ray, interval{ .min = 0.001, .max = infinity }, &rec)) {
         const direction = Vec3t.randomOnHemisphere(rec.normal);
-        return Vec(0.5) * ray_color(Ray{ .origin = rec.p, .dir = direction }, depth - 1, world);
+        return Vec(0.5) * rayColor(Ray{ .origin = rec.p, .dir = direction }, depth - 1, world);
     }
 
     const unit_direction = Vec(ray.dir);
