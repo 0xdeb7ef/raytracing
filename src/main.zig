@@ -12,16 +12,16 @@ const Ray = @import("Ray.zig").Ray(3, f32);
 
 fn hit_sphere(center: Vec3, radius: f32, ray: Ray) f32 {
     const oc = ray.origin - center;
-    const a = Vec3t.dot(ray.dir, ray.dir);
-    const b = 2.0 * Vec3t.dot(oc, ray.dir);
-    const c = Vec3t.dot(oc, oc) - radius * radius;
+    const a = Vec3t.mag_squared(ray.dir);
+    const half_b = Vec3t.dot(oc, ray.dir);
+    const c = Vec3t.mag_squared(oc) - radius * radius;
 
-    const discr = b * b - 4 * a * c;
+    const discr = half_b * half_b - a * c;
 
     if (discr < 0) {
         return -1.0;
     } else {
-        return (-b - @sqrt(discr)) / (2.0 * a);
+        return (-half_b - @sqrt(discr)) / a;
     }
 }
 
