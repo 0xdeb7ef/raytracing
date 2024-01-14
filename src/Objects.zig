@@ -4,7 +4,8 @@ const Vec3t = @import("Vector.zig").Vector(3, f32);
 const Vec3 = @Vector(3, f32);
 const Vec = Vec3t.init;
 
-const interval = @import("utils/interval.zig");
+const utils = @import("utils/utils.zig");
+const interval = utils.interval;
 
 const Allocator = @import("std").mem.Allocator;
 const ArrayList = @import("std").ArrayList;
