@@ -85,9 +85,9 @@ pub const Sphere = struct {
 
         // Find the nearest root that lies in the acceptable range.
         var root = (-half_b - sqrtd) / a;
-        if (root <= ray_t.min or ray_t.max <= root) {
+        if (!ray_t.surrounds(root)) {
             root = (-half_b + sqrtd) / a;
-            if (root <= ray_t.min or ray_t.max <= root)
+            if (!ray_t.surrounds(root))
                 return false;
         }
 
