@@ -1,15 +1,9 @@
 const std = @import("std");
 const stdout_file = std.io.getStdOut().writer();
-const log = std.log;
 
 const Vec3t = @import("Vector.zig").Vector(3, f32);
 const Vec3 = @Vector(3, f32);
 const Vec = Vec3t.init;
-
-const Ray = @import("Ray.zig");
-
-const interval = @import("utils/interval.zig");
-const colorUtils = @import("utils/color.zig");
 
 const Objects = @import("Objects.zig");
 const HittableList = Objects.HittableList;
