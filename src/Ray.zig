@@ -13,5 +13,9 @@ pub fn Ray(comptime dim: usize, comptime T: type) type {
                 .dir = dir,
             };
         }
+
+        pub fn at(self: Self, t: T) Vec {
+            return self.origin + (@as(Vec, @splat(t)) * self.dir);
+        }
     };
 }

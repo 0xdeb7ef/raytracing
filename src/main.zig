@@ -10,7 +10,7 @@ const colorUtils = @import("utils/color.zig");
 
 const Ray = @import("Ray.zig").Ray(3, f32);
 
-fn hit_sphere(center: Vec3, radius: f32, ray: Ray) bool {
+fn hit_sphere(center: Vec3, radius: f32, ray: Ray) f32 {
     const oc = ray.origin - center;
     const a = Vec3t.dot(ray.dir, ray.dir);
     const b = 2.0 * Vec3t.dot(oc, ray.dir);
@@ -18,12 +18,19 @@ fn hit_sphere(center: Vec3, radius: f32, ray: Ray) bool {
 
     const discr = b * b - 4 * a * c;
 
-    return (discr >= 0);
+    if (discr < 0) {
+        return -1.0;
+    } else {
+        return (-b - @sqrt(discr)) / (2.0 * a);
+    }
 }
 
 fn ray_color(ray: Ray) Vec3 {
-    if (hit_sphere(Vec(.{ 0, 0, -1 }), 0.5, ray))
-        return Vec(.{ 1, 0, 0 });
+    const t = hit_sphere(Vec(.{ 0, 0, -1 }), 0.5, ray);
+    if (t > 0.0) {
+        const N = Vec3t.unitVector(ray.at(t) - Vec(.{ 0, 0, -1 }));
+        return Vec(0.5) * (N + Vec(1));
+    }
 
     const unit_direction = Vec(ray.dir);
     const a = 0.5 * (unit_direction[1] + 1.0);
