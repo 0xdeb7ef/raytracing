@@ -6,30 +6,28 @@ const Vec3t = @import("Vector.zig").Vector(3, f32);
 const Vec3 = @Vector(3, f32);
 const Vec = Vec3t.init;
 
-const colorUtils = @import("utils/color.zig");
-
 const Ray = @import("Ray.zig").Ray(3, f32);
 
-fn hit_sphere(center: Vec3, radius: f32, ray: Ray) f32 {
-    const oc = ray.origin - center;
-    const a = Vec3t.mag_squared(ray.dir);
-    const half_b = Vec3t.dot(oc, ray.dir);
-    const c = Vec3t.mag_squared(oc) - radius * radius;
+const interval = @import("utils/interval.zig");
 
-    const discr = half_b * half_b - a * c;
+const colorUtils = @import("utils/color.zig");
 
-    if (discr < 0) {
-        return -1.0;
-    } else {
-        return (-half_b - @sqrt(discr)) / a;
-    }
-}
+const Objects = @import("Objects.zig");
+const HittableList = Objects.HittableList;
+const HitRecord = Objects.HitRecord;
+const Hittable = Objects.Hittable;
 
-fn ray_color(ray: Ray) Vec3 {
-    const t = hit_sphere(Vec(.{ 0, 0, -1 }), 0.5, ray);
-    if (t > 0.0) {
-        const N = Vec3t.unitVector(ray.at(t) - Vec(.{ 0, 0, -1 }));
-        return Vec(0.5) * (N + Vec(1));
+// Constants
+const infinity = std.math.inf(f32);
+const pi: f32 = std.math.pi;
+
+// Utility
+const degToRad = std.math.degreesToRadians;
+
+fn ray_color(ray: Ray, world: HittableList) Vec3 {
+    var rec: HitRecord = undefined;
+    if (world.hit(ray, interval{ .min = 0, .max = infinity }, &rec)) {
+        return Vec(0.5) * (rec.normal + Vec(1));
     }
 
     const unit_direction = Vec(ray.dir);
@@ -42,6 +40,10 @@ pub fn main() !void {
     var bw = std.io.bufferedWriter(stdout_file);
     const stdout = bw.writer();
 
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const alloc = gpa.allocator();
+    defer _ = gpa.deinit();
+
     // Image
     const aspect_ratio = 16.0 / 9.0;
     const image_width = 400;
@@ -49,6 +51,19 @@ pub fn main() !void {
     // Calculate image height, ensuring it is at least 1
     const image_height_tmp = @as(comptime_int, @intFromFloat(@as(comptime_float, @floatFromInt(image_width)) / aspect_ratio));
     const image_height = if (image_height_tmp < 1) 1 else image_height_tmp;
+
+    // World
+    var world = HittableList{};
+    world.init(alloc);
+    defer world.objects.deinit();
+    try world.add(Hittable{ .sphere = Objects.Sphere{
+        .center = Vec(.{ 0, -100.5, -1 }),
+        .radius = 100,
+    } });
+    try world.add(Hittable{ .sphere = Objects.Sphere{
+        .center = Vec(.{ 0, 0, -1 }),
+        .radius = 0.5,
+    } });
 
     // Camera
     const focal_length = 1.0;
@@ -79,7 +94,7 @@ pub fn main() !void {
             const ray_direction = pixel_center - camera_center;
             const r = Ray.init(camera_center, ray_direction);
 
-            const color = ray_color(r);
+            const color = ray_color(r, world);
             try colorUtils.writeColor(color, stdout);
         }
     }
