@@ -131,8 +131,8 @@ fn rayColor(ray: Ray, depth: u32, world: HittableList) Vec3 {
         return Vec(0);
 
     if (world.hit(ray, interval{ .min = 0.001, .max = infinity }, &rec)) {
-        const direction = Vec3t.randomOnHemisphere(rec.normal);
-        return Vec(0.5) * rayColor(Ray{ .origin = rec.p, .dir = direction }, depth - 1, world);
+        const direction = rec.normal + Vec3t.randomUnitVec();
+        return Vec(1.0 / 3.0) * rayColor(Ray{ .origin = rec.p, .dir = direction }, depth - 1, world);
     }
 
     const unit_direction = Vec(ray.dir);
