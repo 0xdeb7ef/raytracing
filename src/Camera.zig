@@ -9,6 +9,8 @@ const HitRecord = Objects.HitRecord;
 const Hittable = Objects.Hittable;
 const HittableList = Objects.HittableList;
 
+const Materials = @import("Materials.zig").Materials;
+
 const utils = @import("utils/utils.zig");
 const interval = utils.interval;
 const infinity = utils.infinity;
@@ -131,8 +133,12 @@ fn rayColor(ray: Ray, depth: u32, world: HittableList) Vec3 {
         return Vec(0);
 
     if (world.hit(ray, interval{ .min = 0.001, .max = infinity }, &rec)) {
-        const direction = rec.normal + Vec3t.randomUnitVec();
-        return Vec(1.0 / 3.0) * rayColor(Ray{ .origin = rec.p, .dir = direction }, depth - 1, world);
+        var scattered: Ray = undefined;
+        var attenuation: Vec3 = undefined;
+
+        if (rec.mat.scatter(ray, rec, &attenuation, &scattered))
+            return attenuation * rayColor(scattered, depth - 1, world);
+        return Vec(0);
     }
 
     const unit_direction = Vec(ray.dir);

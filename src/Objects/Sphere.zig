@@ -4,20 +4,23 @@ const Vec = Vec3t.init;
 
 const Ray = @import("../Ray.zig");
 
+const Materials = @import("../Materials.zig");
+
 const HitRecord = @import("../Objects.zig").HitRecord;
 
 const interval = @import("../utils/interval.zig");
 
 center: Vec3,
 radius: f32,
+mat: Materials.Material,
 
 const Self = @This();
 
 pub fn hit(self: Self, ray: Ray, ray_t: interval, rec: *HitRecord) bool {
     const oc = ray.origin - self.center;
-    const a = Vec3t.mag_squared(ray.dir);
+    const a = Vec3t.magSquared(ray.dir);
     const half_b = Vec3t.dot(oc, ray.dir);
-    const c = Vec3t.mag_squared(oc) - (self.radius * self.radius);
+    const c = Vec3t.magSquared(oc) - (self.radius * self.radius);
     const discr = (half_b * half_b) - (a * c);
 
     if (discr < 0) return false;
@@ -35,6 +38,7 @@ pub fn hit(self: Self, ray: Ray, ray_t: interval, rec: *HitRecord) bool {
     rec.p = ray.at(rec.t);
     const outward_normal = (rec.p - self.center) / Vec(self.radius);
     rec.set_face_normal(ray, outward_normal);
+    rec.mat = self.mat;
 
     return true;
 }

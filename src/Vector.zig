@@ -5,6 +5,8 @@ const utils = @import("utils/utils.zig");
 const random = utils.random;
 const randomI = utils.randomI;
 
+const std = @import("std");
+
 pub fn Vector(comptime size: usize, comptime T: type) type {
     return struct {
         const Vec = @Vector(size, T);
@@ -17,10 +19,20 @@ pub fn Vector(comptime size: usize, comptime T: type) type {
         }
 
         pub inline fn mag(u: Vec) f32 {
-            return @sqrt(mag_squared(u));
+            return @sqrt(magSquared(u));
         }
-        pub inline fn mag_squared(u: Vec) T {
+        pub inline fn magSquared(u: Vec) T {
             return @reduce(.Add, (u * u));
+        }
+
+        pub inline fn nearZero(u: Vec) bool {
+            const s = switch (@typeInfo(T)) {
+                .Float => std.math.floatEps(T),
+                .Int => 1,
+                else => @compileError("does this type even have an epsilon?"),
+            };
+
+            return @reduce(.And, u < @as(Vec, @splat(s)));
         }
 
         pub inline fn unitVector(u: Vec) Vec {
@@ -66,7 +78,7 @@ pub fn Vector(comptime size: usize, comptime T: type) type {
         pub inline fn randomInSphere() Vec {
             while (true) {
                 const p = randomIVec(-1, 1);
-                if (mag_squared(p) < 1)
+                if (magSquared(p) < 1)
                     return p;
             }
         }
@@ -80,6 +92,10 @@ pub fn Vector(comptime size: usize, comptime T: type) type {
             } else {
                 return -on_unit_sphere;
             }
+        }
+
+        pub inline fn reflect(u: Vec, v: Vec) Vec {
+            return u - @as(Vec, @splat(2)) * @as(Vec, @splat(dot(u, v))) * v;
         }
     };
 }

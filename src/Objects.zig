@@ -4,6 +4,8 @@ const Vec3t = @import("Vector.zig").Vector(3, f32);
 const Vec3 = @Vector(3, f32);
 const Vec = Vec3t.init;
 
+const Materials = @import("Materials.zig");
+
 const utils = @import("utils/utils.zig");
 const interval = utils.interval;
 
@@ -16,6 +18,7 @@ pub const Sphere = @import("Objects/Sphere.zig");
 pub const HitRecord = struct {
     p: Vec3 = undefined,
     normal: Vec3 = undefined,
+    mat: Materials.Material = undefined,
     t: f32 = undefined,
     front_face: bool = undefined,
 
