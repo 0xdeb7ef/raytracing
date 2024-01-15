@@ -49,7 +49,7 @@ pub fn main() !void {
 
     // Image
     try stdout.print("P3\n{d} {d}\n255\n", .{ cam.image_width, cam._image_height });
-    for (0..((cam.image_width * cam._image_height) - 1)) |i| {
+    for (0..cam.image_width * cam._image_height) |i| {
         try writeColor(buf[i], cam.samples_per_pixel, stdout);
     }
 
