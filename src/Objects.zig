@@ -20,15 +20,11 @@ pub const HitRecord = struct {
     front_face: bool = undefined,
 
     pub fn set_face_normal(self: *HitRecord, ray: Ray, outward_normal: Vec3) void {
-        _ = ray; // autofix
         // Sets the hit record normal vector.
         // NOTE: the parameter `outward_normal` is assumed to have unit length.
 
-        // NOTE - somehow, the normals are always correct, and having this code just
-        // makes it worse
-        // self.front_face = Vec3t.dot(ray.dir, outward_normal) < 0;
-        // self.normal = if (self.front_face) outward_normal else -outward_normal;
-        self.normal = outward_normal;
+        self.front_face = Vec3t.dot(ray.dir, outward_normal) < 0;
+        self.normal = if (self.front_face) outward_normal else -outward_normal;
     }
 };
 

@@ -74,17 +74,12 @@ pub fn Vector(comptime size: usize, comptime T: type) type {
             return unitVector(randomInSphere());
         }
         pub inline fn randomOnHemisphere(normal: Vec) Vec {
-            _ = normal; // autofix
-            // NOTE - somehow the normals are always correct and
-            // having this code only makes it worse:
-            // const on_unit_sphere = randomUnitVec();
-            // if (dot(on_unit_sphere, normal) > 0.0) {
-            //     return on_unit_sphere;
-            // } else {
-            //     return -on_unit_sphere;
-            // }
-
-            return randomUnitVec();
+            const on_unit_sphere = randomUnitVec();
+            if (dot(on_unit_sphere, normal) > 0.0) {
+                return on_unit_sphere;
+            } else {
+                return -on_unit_sphere;
+            }
         }
     };
 }
