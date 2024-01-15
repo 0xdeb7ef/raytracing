@@ -35,10 +35,24 @@ pub fn main() !void {
     world.init(alloc);
     defer world.objects.deinit();
 
-    const material_ground = Material{ .lambertian = .{ .albedo = Vec(.{ 0.8, 0.8, 0.0 }) } };
-    const material_center = Material{ .lambertian = .{ .albedo = Vec(.{ 0.7, 0.3, 0.3 }) } };
-    const material_left = Material{ .metal = .{ .albedo = Vec(.{ 0.8, 0.8, 0.8 }) } };
-    const material_right = Material{ .metal = .{ .albedo = Vec(.{ 0.8, 0.6, 0.2 }) } };
+    const material_ground = Material{
+        .lambertian = .{ .albedo = Vec(.{ 0.8, 0.8, 0.0 }) },
+    };
+    const material_center = Material{
+        .lambertian = .{ .albedo = Vec(.{ 0.7, 0.3, 0.3 }) },
+    };
+    const material_left = Material{
+        .metal = .{
+            .albedo = Vec(.{ 0.8, 0.8, 0.8 }),
+            .fuzz = 0.3,
+        },
+    };
+    const material_right = Material{
+        .metal = .{
+            .albedo = Vec(.{ 0.8, 0.6, 0.2 }),
+            .fuzz = 1.0,
+        },
+    };
 
     try world.add(Hittable{ .sphere = Sphere{
         .center = Vec(.{ 0, -100.5, -1 }),
