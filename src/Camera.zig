@@ -15,7 +15,9 @@ const infinity = utils.infinity;
 const writeColor = utils.writeColor;
 const random = utils.random;
 
-const log = @import("std").log;
+const std = @import("std");
+const Allocator = std.mem.Allocator;
+const Pool = std.Thread.Pool;
 
 /// Ratio of image width over height
 aspect_ratio: f32 = 1.0,
@@ -40,26 +42,49 @@ _pixel_delta_v: Vec3 = undefined,
 
 const Self = @This();
 
-pub fn render(self: *Self, world: HittableList, stdout: anytype) !void {
+pub fn render(self: *Self, world: HittableList, allocator: Allocator, n_threads: ?u32) ![][3]f32 {
     self.init();
 
-    try stdout.print("P3\n{d} {d}\n255\n", .{ self.image_width, self._image_height });
+    var buf = try allocator.alloc([3]f32, self.image_width * self._image_height);
+
+    // Thread Pool
+    var pool: std.Thread.Pool = undefined;
+    try pool.init(.{ .allocator = allocator, .n_jobs = n_threads });
+    defer pool.deinit();
 
     var j: usize = 0;
     while (j < self._image_height) : (j += 1) {
-        log.info("Scanlines remaining: [{d:4}/{d:4}]", .{ self._image_height - j, self._image_height });
-        var i: usize = 0;
-        while (i < self.image_width) : (i += 1) {
-            var pixel_color = Vec(0);
-            var sample: usize = 0;
-            while (sample < self.samples_per_pixel) : (sample += 1) {
-                const r = self.getRay(i, j);
-                pixel_color += rayColor(r, self.max_depth, world);
-            }
-            try writeColor(pixel_color, self.samples_per_pixel, stdout);
+        try pool.spawn(Worker, .{
+            self,
+            j,
+            self.image_width,
+            self.samples_per_pixel,
+            self.max_depth,
+            &buf,
+            world,
+        });
+    }
+    return buf;
+}
+
+fn Worker(
+    self: *Self,
+    j: usize,
+    image_width: u32,
+    samples_per_pixel: u32,
+    max_depth: u32,
+    buf: *[][3]f32,
+    world: HittableList,
+) void {
+    var i: usize = 0;
+    while (i < image_width) : (i += 1) {
+        var sample: usize = 0;
+        while (sample < samples_per_pixel) : (sample += 1) {
+            const r = self.getRay(i, j);
+            buf.*[(j * image_width) + i] += rayColor(r, max_depth, world);
         }
     }
-    log.info("Done!", .{});
+    return;
 }
 
 fn init(self: *Self) void {

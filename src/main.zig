@@ -7,22 +7,25 @@ const Vec = Vec3t.init;
 
 const Objects = @import("Objects.zig");
 const HittableList = Objects.HittableList;
-const HitRecord = Objects.HitRecord;
 const Hittable = Objects.Hittable;
 
 const Camera = @import("Camera.zig");
+
+const utils = @import("utils/utils.zig");
+const writeColor = utils.writeColor;
 
 pub fn main() !void {
     // for now, let's use stdout
     var bw = std.io.bufferedWriter(stdout_file);
     const stdout = bw.writer();
 
+    // gpa
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const alloc = gpa.allocator();
     defer _ = gpa.deinit();
 
     // World
-    var world = HittableList{};
+    var world: HittableList = undefined;
     world.init(alloc);
     defer world.objects.deinit();
     try world.add(Hittable{ .sphere = Objects.Sphere{
@@ -34,13 +37,21 @@ pub fn main() !void {
         .radius = 0.5,
     } });
 
+    // Camera
     var cam = Camera{
         .image_width = 400,
         .aspect_ratio = 16.0 / 9.0,
         .samples_per_pixel = 100,
         .max_depth = 50,
     };
-    try cam.render(world, stdout);
+    const buf = try cam.render(world, alloc, null);
+    defer alloc.free(buf);
+
+    // Image
+    try stdout.print("P3\n{d} {d}\n255\n", .{ cam.image_width, cam._image_height });
+    for (0..((cam.image_width * cam._image_height) - 1)) |i| {
+        try writeColor(buf[i], cam.samples_per_pixel, stdout);
+    }
 
     try bw.flush();
 }

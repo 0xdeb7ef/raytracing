@@ -47,7 +47,7 @@ pub const Hittable = union(enum) {
 pub const HittableList = struct {
     const Self = @This();
 
-    objects: ArrayList(Hittable) = undefined,
+    objects: ArrayList(Hittable),
 
     pub fn init(self: *Self, allocator: Allocator) void {
         self.objects = ArrayList(Hittable).init(allocator);
