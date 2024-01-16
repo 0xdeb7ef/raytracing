@@ -6,8 +6,7 @@ const Ray = @import("Ray.zig");
 
 const Objects = @import("Objects.zig");
 const HitRecord = Objects.HitRecord;
-const Hittable = Objects.Hittable;
-const HittableList = Objects.HittableList;
+const ObjectList = Objects.ObjectList;
 
 const Materials = @import("Materials.zig").Materials;
 
@@ -44,7 +43,7 @@ _pixel_delta_v: Vec3 = undefined,
 
 const Self = @This();
 
-pub fn render(self: *Self, world: HittableList, allocator: Allocator, n_threads: ?u32) ![][3]f32 {
+pub fn render(self: *Self, world: ObjectList, allocator: Allocator, n_threads: ?u32) ![][3]f32 {
     self.init();
 
     var buf = try allocator.alloc([3]f32, self.image_width * self._image_height);
@@ -76,7 +75,7 @@ fn Worker(
     samples_per_pixel: u32,
     max_depth: u32,
     buf: *[][3]f32,
-    world: HittableList,
+    world: ObjectList,
 ) void {
     var i: usize = 0;
     while (i < image_width) : (i += 1) {
@@ -90,7 +89,9 @@ fn Worker(
 }
 
 fn init(self: *Self) void {
+    // image_height = image_width / aspect_ratio
     self._image_height = @intFromFloat(@as(f32, @floatFromInt(self.image_width)) / self.aspect_ratio);
+    // make sure image_height is at least 1
     self._image_height = if (self._image_height < 1) 1 else self._image_height;
 
     self._center = Vec(0);
@@ -98,6 +99,7 @@ fn init(self: *Self) void {
     // Determine viewport dimensions
     const focal_length = 1.0;
     const viewport_height = 2.0;
+    // viewport_width = viewport_height * (image_width / image_height)
     const viewport_width = viewport_height * (@as(f32, @floatFromInt(self.image_width)) / @as(f32, @floatFromInt(self._image_height)));
 
     // Calculate the vectors across the horizontal and down the vertical viewport edges
@@ -105,15 +107,20 @@ fn init(self: *Self) void {
     const viewport_v = Vec(.{ 0, -viewport_height, 0 });
 
     // Calculate the horizontal and vertical delta vectors from pixel to pixel
+    // pixel_delta_u = viewport_u / image_width
     self._pixel_delta_u = viewport_u / Vec(@as(f32, @floatFromInt(self.image_width)));
+    // pixel_delta_v = viewport_v / image_height
     self._pixel_delta_v = viewport_v / Vec(@as(f32, @floatFromInt(self._image_height)));
 
     // Calculate the location of the upper left pixel
+    // viewport_upper_left = center - {0,0,focal_length} - viewport_u/2 - viewport_v/2
     const viewport_upper_left = self._center - Vec(.{ 0, 0, focal_length }) - (viewport_u / Vec(2)) - (viewport_v / Vec(2));
+    // pixel00_loc = viewport_upper_left + 0.5*(pixel_delta_u + pixel_delta_v)
     self._pixel00_loc = viewport_upper_left + (Vec(0.5) * (self._pixel_delta_u + self._pixel_delta_v));
 }
 
 fn getRay(self: Self, i: usize, j: usize) Ray {
+    // pixel_center = pixel00_loc + i*pixel_delta_u + j*pixel_delta_v
     const pixel_center = self._pixel00_loc + (Vec(@as(f32, @floatFromInt(i))) * self._pixel_delta_u) + (Vec(@as(f32, @floatFromInt(j))) * self._pixel_delta_v);
     const pixel_sample = pixel_center + self.pixelSampleSquare();
 
@@ -126,7 +133,7 @@ fn pixelSampleSquare(self: Self) Vec3 {
     return (Vec(px) * self._pixel_delta_u) + (Vec(py) * self._pixel_delta_v);
 }
 
-fn rayColor(ray: Ray, depth: u32, world: HittableList) Vec3 {
+fn rayColor(ray: Ray, depth: u32, world: ObjectList) Vec3 {
     var rec: HitRecord = undefined;
 
     if (depth <= 0)
@@ -141,6 +148,7 @@ fn rayColor(ray: Ray, depth: u32, world: HittableList) Vec3 {
         return Vec(0);
     }
 
+    // world background color
     const unit_direction = Vec(ray.dir);
     const a = 0.5 * (unit_direction[1] + 1.0);
     return (Vec(1 - a) * Vec(1)) + (Vec(a) * Vec(.{ 0.5, 0.7, 1.0 }));

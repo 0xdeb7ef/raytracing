@@ -1,11 +1,11 @@
-const testing = @import("std").testing;
-const sqrt1_2 = @import("std").math.sqrt1_2;
+const std = @import("std");
+const testing = std.testing;
+const sqrt1_2 = std.math.sqrt1_2;
+const floatEps = std.math.floatEps;
 
 const utils = @import("utils/utils.zig");
 const random = utils.random;
 const randomI = utils.randomI;
-
-const std = @import("std");
 
 pub fn Vector(comptime size: usize, comptime T: type) type {
     return struct {
@@ -27,7 +27,7 @@ pub fn Vector(comptime size: usize, comptime T: type) type {
 
         pub inline fn nearZero(u: Vec) bool {
             const s = switch (@typeInfo(T)) {
-                .Float => std.math.floatEps(T),
+                .Float => floatEps(T),
                 .Int => 1,
                 else => @compileError("does this type even have an epsilon?"),
             };
@@ -60,6 +60,7 @@ pub fn Vector(comptime size: usize, comptime T: type) type {
             };
         }
 
+        // utilities
         pub fn randomVec() Vec {
             return .{
                 random(T),
@@ -75,17 +76,17 @@ pub fn Vector(comptime size: usize, comptime T: type) type {
             };
         }
 
-        pub inline fn randomInSphere() Vec {
+        pub fn randomInSphere() Vec {
             while (true) {
                 const p = randomIVec(-1, 1);
                 if (magSquared(p) < 1)
                     return p;
             }
         }
-        pub inline fn randomUnitVec() Vec {
+        pub fn randomUnitVec() Vec {
             return unitVector(randomInSphere());
         }
-        pub inline fn randomOnHemisphere(normal: Vec) Vec {
+        pub fn randomOnHemisphere(normal: Vec) Vec {
             const on_unit_sphere = randomUnitVec();
             if (dot(on_unit_sphere, normal) > 0.0) {
                 return on_unit_sphere;
@@ -94,8 +95,15 @@ pub fn Vector(comptime size: usize, comptime T: type) type {
             }
         }
 
-        pub inline fn reflect(u: Vec, v: Vec) Vec {
+        pub fn reflect(u: Vec, v: Vec) Vec {
             return u - @as(Vec, @splat(2)) * @as(Vec, @splat(dot(u, v))) * v;
+        }
+        pub fn refract(u: Vec, v: Vec, etar: f32) Vec {
+            const cos_theta = @min(dot(-u, v), 1.0);
+            const r_out_perp = @as(Vec, @splat(etar)) * (u + @as(Vec, @splat(cos_theta)) * v);
+            const r_out_par = @as(Vec, @splat(-@sqrt(@abs(1.0 - magSquared(r_out_perp))))) * v;
+
+            return r_out_perp + r_out_par;
         }
     };
 }

@@ -5,15 +5,7 @@ const Vec3t = @import("Vector.zig").Vector(3, f32);
 const Vec3 = @Vector(3, f32);
 const Vec = Vec3t.init;
 
-const Objects = @import("Objects.zig");
-const HittableList = Objects.HittableList;
-const Hittable = Objects.Hittable;
-const Sphere = Objects.Sphere;
-
-const Materials = @import("Materials.zig");
-const Material = Materials.Material;
-const Lambertian = Materials.Lambertian;
-const Metal = Materials.Metal;
+const ObjectList = @import("Objects.zig").ObjectList;
 
 const Camera = @import("Camera.zig");
 
@@ -31,49 +23,61 @@ pub fn main() !void {
     defer _ = gpa.deinit();
 
     // World
-    var world: HittableList = undefined;
+    var world: ObjectList = undefined;
     world.init(alloc);
     defer world.objects.deinit();
 
-    const material_ground = Material{
+    const material_ground = .{
         .lambertian = .{ .albedo = Vec(.{ 0.8, 0.8, 0.0 }) },
     };
-    const material_center = Material{
-        .lambertian = .{ .albedo = Vec(.{ 0.7, 0.3, 0.3 }) },
+    const material_center = .{
+        .lambertian = .{ .albedo = Vec(.{ 0.1, 0.2, 0.5 }) },
     };
-    const material_left = Material{
-        .metal = .{
-            .albedo = Vec(.{ 0.8, 0.8, 0.8 }),
-            .fuzz = 0.3,
-        },
+    const material_left = .{
+        .dielectric = .{ .ir = 1.5 },
     };
-    const material_right = Material{
+    const material_right = .{
         .metal = .{
             .albedo = Vec(.{ 0.8, 0.6, 0.2 }),
             .fuzz = 1.0,
         },
     };
 
-    try world.add(Hittable{ .sphere = Sphere{
-        .center = Vec(.{ 0, -100.5, -1 }),
-        .radius = 100,
-        .mat = material_ground,
-    } });
-    try world.add(Hittable{ .sphere = Sphere{
-        .center = Vec(.{ 0, 0, -1 }),
-        .radius = 0.5,
-        .mat = material_center,
-    } });
-    try world.add(Hittable{ .sphere = Sphere{
-        .center = Vec(.{ -1, 0, -1 }),
-        .radius = 0.5,
-        .mat = material_left,
-    } });
-    try world.add(Hittable{ .sphere = Sphere{
-        .center = Vec(.{ 1, 0, -1 }),
-        .radius = 0.5,
-        .mat = material_right,
-    } });
+    try world.add(.{
+        .sphere = .{
+            .center = Vec(.{ 0, -100.5, -1 }),
+            .radius = 100,
+            .mat = material_ground,
+        },
+    });
+    try world.add(.{
+        .sphere = .{
+            .center = Vec(.{ 0, 0, -1 }),
+            .radius = 0.5,
+            .mat = material_center,
+        },
+    });
+    try world.add(.{
+        .sphere = .{
+            .center = Vec(.{ -1, 0, -1 }),
+            .radius = 0.5,
+            .mat = material_left,
+        },
+    });
+    try world.add(.{
+        .sphere = .{
+            .center = Vec(.{ -1, 0, -1 }),
+            .radius = -0.4,
+            .mat = material_left,
+        },
+    });
+    try world.add(.{
+        .sphere = .{
+            .center = Vec(.{ 1, 0, -1 }),
+            .radius = 0.5,
+            .mat = material_right,
+        },
+    });
 
     // Camera
     var cam = Camera{

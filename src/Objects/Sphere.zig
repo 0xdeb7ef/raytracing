@@ -4,7 +4,7 @@ const Vec = Vec3t.init;
 
 const Ray = @import("../Ray.zig");
 
-const Materials = @import("../Materials.zig");
+const Material = @import("../Materials.zig").Material;
 
 const HitRecord = @import("../Objects.zig").HitRecord;
 
@@ -12,7 +12,7 @@ const interval = @import("../utils/interval.zig");
 
 center: Vec3,
 radius: f32,
-mat: Materials.Material,
+mat: Material,
 
 const Self = @This();
 

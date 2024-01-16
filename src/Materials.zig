@@ -7,16 +7,19 @@ const HitRecord = @import("Objects.zig").HitRecord;
 // Materials
 pub const Lambertian = @import("Materials/Lambertian.zig");
 pub const Metal = @import("Materials/Metal.zig");
+pub const Dielectric = @import("Materials/Dielectric.zig");
 
 pub const Material = union(enum) {
     lambertian: Lambertian,
     metal: Metal,
+    dielectric: Dielectric,
     none,
 
     pub fn scatter(self: Material, r_in: Ray, rec: HitRecord, attenuation: *Vec3, scattered: *Ray) bool {
         return switch (self) {
             Material.lambertian => |m| m.scatter(r_in, rec, attenuation, scattered),
             Material.metal => |m| m.scatter(r_in, rec, attenuation, scattered),
+            Material.dielectric => |m| m.scatter(r_in, rec, attenuation, scattered),
             else => @panic("no material defined"),
         };
     }
