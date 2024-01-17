@@ -38,7 +38,7 @@ pub const Object = union(enum) {
     pub fn hit(self: Object, ray: Ray, ray_t: interval, rec: *HitRecord) bool {
         return switch (self) {
             Object.sphere => |s| s.hit(ray, ray_t, rec),
-            else => @compileError("no object defined"),
+            else => @panic("no object defined"),
         };
     }
 };

@@ -1,5 +1,6 @@
 const std = @import("std");
 const stdout_file = std.io.getStdOut().writer();
+const stderr_file = std.io.getStdErr().writer();
 
 const Vec3t = @import("Vector.zig").Vector(3, f32);
 const Vec3 = @Vector(3, f32);
@@ -11,11 +12,14 @@ const Camera = @import("Camera.zig");
 
 const utils = @import("utils/utils.zig");
 const writeColor = utils.writeColor;
+const pi = utils.pi;
 
 pub fn main() !void {
     // for now, let's use stdout
     var bw = std.io.bufferedWriter(stdout_file);
+    var bwe = std.io.bufferedWriter(stderr_file);
     const stdout = bw.writer();
+    const stderr = bwe.writer();
 
     // gpa
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -28,7 +32,7 @@ pub fn main() !void {
     defer world.objects.deinit();
 
     const material_ground = .{
-        .lambertian = .{ .albedo = Vec(.{ 0.8, 0.8, 0.0 }) },
+        .lambertian = .{ .albedo = Vec(.{ 0.8, 0.8, 0.1 }) },
     };
     const material_center = .{
         .lambertian = .{ .albedo = Vec(.{ 0.1, 0.2, 0.5 }) },
@@ -39,7 +43,7 @@ pub fn main() !void {
     const material_right = .{
         .metal = .{
             .albedo = Vec(.{ 0.8, 0.6, 0.2 }),
-            .fuzz = 1.0,
+            .fuzz = 0.0,
         },
     };
 
@@ -85,6 +89,11 @@ pub fn main() !void {
         .aspect_ratio = 16.0 / 9.0,
         .samples_per_pixel = 100,
         .max_depth = 50,
+
+        .vfov = 20,
+        .lookfrom = Vec(.{ -2, 2, 1 }),
+        .lookat = Vec(.{ 0, 0, -1 }),
+        .vup = Vec(.{ 0, 1, 0 }),
     };
     const buf = try cam.render(world, alloc, null);
     defer alloc.free(buf);
@@ -95,5 +104,13 @@ pub fn main() !void {
         try writeColor(buf[i], cam.samples_per_pixel, stdout);
     }
 
+    try stderr.print("\nFinished rendering [{d}x{d}:{d}|{d}]\n", .{
+        cam.image_width,
+        cam._image_height,
+        cam.samples_per_pixel,
+        cam.max_depth,
+    });
+
     try bw.flush();
+    try bwe.flush();
 }

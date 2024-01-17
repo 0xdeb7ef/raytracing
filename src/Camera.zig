@@ -8,17 +8,17 @@ const Objects = @import("Objects.zig");
 const HitRecord = Objects.HitRecord;
 const ObjectList = Objects.ObjectList;
 
-const Materials = @import("Materials.zig").Materials;
-
 const utils = @import("utils/utils.zig");
 const interval = utils.interval;
 const infinity = utils.infinity;
 const writeColor = utils.writeColor;
 const random = utils.random;
+const degToRad = utils.degToRad;
 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 const Pool = std.Thread.Pool;
+const tan = std.math.tan;
 
 /// Ratio of image width over height
 aspect_ratio: f32 = 1.0,
@@ -28,6 +28,15 @@ image_width: u32 = 100,
 samples_per_pixel: u32 = 10,
 /// Maximum number of ray bounces into scene
 max_depth: u32 = 10,
+
+/// Vertical view angle (field of view)
+vfov: f32 = 90.0,
+/// Point camera is looking from
+lookfrom: Vec3 = Vec(.{ 0, 0, -1 }),
+/// Point camera is looking at
+lookat: Vec3 = Vec(.{ 0, 0, 0 }),
+/// Camera-relative "up" direction
+vup: Vec3 = Vec(.{ 0, 1, 0 }),
 
 // private
 /// Rendered image height
@@ -40,6 +49,10 @@ _pixel00_loc: Vec3 = undefined,
 _pixel_delta_u: Vec3 = undefined,
 /// Offset to pixel to the left
 _pixel_delta_v: Vec3 = undefined,
+/// Camera frame basis vectors
+_u: Vec3 = undefined,
+_v: Vec3 = undefined,
+_w: Vec3 = undefined,
 
 const Self = @This();
 
@@ -94,17 +107,24 @@ fn init(self: *Self) void {
     // make sure image_height is at least 1
     self._image_height = if (self._image_height < 1) 1 else self._image_height;
 
-    self._center = Vec(0);
+    self._center = self.lookfrom;
 
     // Determine viewport dimensions
-    const focal_length = 1.0;
-    const viewport_height = 2.0;
+    const focal_length = Vec3t.mag(self.lookfrom - self.lookat);
+    const theta = degToRad(f32, self.vfov);
+    const h = tan(theta / 2.0);
+    const viewport_height = 2.0 * h * focal_length;
     // viewport_width = viewport_height * (image_width / image_height)
     const viewport_width = viewport_height * (@as(f32, @floatFromInt(self.image_width)) / @as(f32, @floatFromInt(self._image_height)));
 
+    // Calculate the u,v,w unit basis vector for the camera coordinate frame
+    self._w = Vec3t.unitVector(self.lookfrom - self.lookat);
+    self._u = Vec3t.unitVector(Vec3t.cross(self.vup, self._w));
+    self._v = Vec3t.cross(self._w, self._u);
+
     // Calculate the vectors across the horizontal and down the vertical viewport edges
-    const viewport_u = Vec(.{ viewport_width, 0, 0 });
-    const viewport_v = Vec(.{ 0, -viewport_height, 0 });
+    const viewport_u = Vec(viewport_width) * self._u;
+    const viewport_v = Vec(viewport_height) * -self._v;
 
     // Calculate the horizontal and vertical delta vectors from pixel to pixel
     // pixel_delta_u = viewport_u / image_width
@@ -113,8 +133,8 @@ fn init(self: *Self) void {
     self._pixel_delta_v = viewport_v / Vec(@as(f32, @floatFromInt(self._image_height)));
 
     // Calculate the location of the upper left pixel
-    // viewport_upper_left = center - {0,0,focal_length} - viewport_u/2 - viewport_v/2
-    const viewport_upper_left = self._center - Vec(.{ 0, 0, focal_length }) - (viewport_u / Vec(2)) - (viewport_v / Vec(2));
+    // viewport_upper_left = center - focal_length*w - viewport_u/2 - viewport_v/2
+    const viewport_upper_left = self._center - (Vec(focal_length) * self._w) - (viewport_u / Vec(2)) - (viewport_v / Vec(2));
     // pixel00_loc = viewport_upper_left + 0.5*(pixel_delta_u + pixel_delta_v)
     self._pixel00_loc = viewport_upper_left + (Vec(0.5) * (self._pixel_delta_u + self._pixel_delta_v));
 }
@@ -149,7 +169,8 @@ fn rayColor(ray: Ray, depth: u32, world: ObjectList) Vec3 {
     }
 
     // world background color
-    const unit_direction = Vec(ray.dir);
+    const unit_direction = Vec3t.unitVector(ray.dir);
     const a = 0.5 * (unit_direction[1] + 1.0);
-    return (Vec(1 - a) * Vec(1)) + (Vec(a) * Vec(.{ 0.5, 0.7, 1.0 }));
+    // (1-a)*{1,1,1} + a*{0.5,0.7,1.0}
+    return Vec(1 - a) * Vec(1) + Vec(a) * Vec(.{ 0.5, 0.7, 1.0 });
 }
