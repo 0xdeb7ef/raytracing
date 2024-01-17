@@ -38,6 +38,11 @@ lookat: Vec3 = Vec(.{ 0, 0, 0 }),
 /// Camera-relative "up" direction
 vup: Vec3 = Vec(.{ 0, 1, 0 }),
 
+/// Variation angle of rays through each pixel
+defocus_angle: f32 = 0.0,
+/// Distance from camera lookfrom point to plane of perfect focus
+focus_dist: f32 = 10.0,
+
 // private
 /// Rendered image height
 _image_height: u32 = undefined,
@@ -53,6 +58,10 @@ _pixel_delta_v: Vec3 = undefined,
 _u: Vec3 = undefined,
 _v: Vec3 = undefined,
 _w: Vec3 = undefined,
+/// Defocus disk horizontal radius
+_defocus_disk_u: Vec3 = undefined,
+/// Defocus disk vertical radius
+_defocus_disk_v: Vec3 = undefined,
 
 const Self = @This();
 
@@ -110,10 +119,9 @@ fn init(self: *Self) void {
     self._center = self.lookfrom;
 
     // Determine viewport dimensions
-    const focal_length = Vec3t.mag(self.lookfrom - self.lookat);
     const theta = degToRad(f32, self.vfov);
     const h = tan(theta / 2.0);
-    const viewport_height = 2.0 * h * focal_length;
+    const viewport_height = 2.0 * h * self.focus_dist;
     // viewport_width = viewport_height * (image_width / image_height)
     const viewport_width = viewport_height * (@as(f32, @floatFromInt(self.image_width)) / @as(f32, @floatFromInt(self._image_height)));
 
@@ -133,24 +141,42 @@ fn init(self: *Self) void {
     self._pixel_delta_v = viewport_v / Vec(@as(f32, @floatFromInt(self._image_height)));
 
     // Calculate the location of the upper left pixel
-    // viewport_upper_left = center - focal_length*w - viewport_u/2 - viewport_v/2
-    const viewport_upper_left = self._center - (Vec(focal_length) * self._w) - (viewport_u / Vec(2)) - (viewport_v / Vec(2));
+    // viewport_upper_left = center - focus_dist*w - viewport_u/2 - viewport_v/2
+    const viewport_upper_left = self._center - (Vec(self.focus_dist) * self._w) - (viewport_u / Vec(2)) - (viewport_v / Vec(2));
     // pixel00_loc = viewport_upper_left + 0.5*(pixel_delta_u + pixel_delta_v)
     self._pixel00_loc = viewport_upper_left + (Vec(0.5) * (self._pixel_delta_u + self._pixel_delta_v));
+
+    // Calculate the camera defocus disk basis vectors
+    // defocus_radius = focus_dist * tan(rad(defocus_angle/2.0))
+    const defocus_radius = self.focus_dist * tan(degToRad(f32, self.defocus_angle / 2.0));
+    self._defocus_disk_u = self._u * Vec(defocus_radius);
+    self._defocus_disk_u = self._v * Vec(defocus_radius);
 }
 
 fn getRay(self: Self, i: usize, j: usize) Ray {
+    // Get a randomly-sampled camera ray for the pixel at location i,j,
+    // originating from the camera defocus disk
+
     // pixel_center = pixel00_loc + i*pixel_delta_u + j*pixel_delta_v
     const pixel_center = self._pixel00_loc + (Vec(@as(f32, @floatFromInt(i))) * self._pixel_delta_u) + (Vec(@as(f32, @floatFromInt(j))) * self._pixel_delta_v);
     const pixel_sample = pixel_center + self.pixelSampleSquare();
 
-    return Ray{ .origin = self._center, .dir = pixel_sample - self._center };
+    const ray_origin = if (self.defocus_angle <= 0) self._center else self.defocusDiskSample();
+    const ray_direction = pixel_sample - ray_origin;
+
+    return Ray{ .origin = ray_origin, .dir = ray_direction };
 }
 
 fn pixelSampleSquare(self: Self) Vec3 {
     const px = -0.5 + random(f32);
     const py = -0.5 + random(f32);
     return (Vec(px) * self._pixel_delta_u) + (Vec(py) * self._pixel_delta_v);
+}
+
+fn defocusDiskSample(self: Self) Vec3 {
+    // Returns a random point in the camera defocus disk
+    const p = Vec3t.randomInUnitDisk();
+    return self._center + (Vec(p[0]) * self._defocus_disk_u) + (Vec(p[1]) * self._defocus_disk_v);
 }
 
 fn rayColor(ray: Ray, depth: u32, world: ObjectList) Vec3 {

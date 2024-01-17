@@ -76,15 +76,23 @@ pub fn Vector(comptime size: usize, comptime T: type) type {
             };
         }
 
-        pub fn randomInSphere() Vec {
+        pub fn randomInUnitSphere() Vec {
             while (true) {
                 const p = randomIVec(-1, 1);
                 if (magSquared(p) < 1)
                     return p;
             }
         }
+        const Vec3 = @Vector(3, T);
+        pub fn randomInUnitDisk() Vec3 {
+            while (true) {
+                const p = .{ randomI(T, -1, 1), randomI(T, -1, 1), 0 };
+                if (magSquared(p) < 1)
+                    return p;
+            }
+        }
         pub fn randomUnitVec() Vec {
-            return unitVector(randomInSphere());
+            return unitVector(randomInUnitSphere());
         }
         pub fn randomOnHemisphere(normal: Vec) Vec {
             const on_unit_sphere = randomUnitVec();
